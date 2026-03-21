@@ -586,6 +586,11 @@ nav {
         <button class="btn-main" id="rest-btn" onclick="startRest()">⏸ Mola (60s)</button>
         <button class="btn-sec" onclick="nextEx()">Sonraki ▶</button>
       </div>
+      <div id="rest-overlay" style="display:none;margin:0 0 12px;background:rgba(232,255,71,0.06);border:1px solid rgba(232,255,71,0.2);border-radius:12px;padding:14px;text-align:center">
+        <div style="font-family:var(--font-display);font-size:36px;color:var(--accent);letter-spacing:2px" id="rest-countdown">60</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">Mola — nefes al</div>
+        <button class="btn-main" onclick="skipRest()" style="padding:10px 24px;font-size:13px">▶ Hazırım, başlat!</button>
+      </div>
 
       <div class="ex-queue" id="ex-queue"></div>
 
@@ -1178,36 +1183,60 @@ function nextEx() {
       return;
     }
     renderActiveWorkout();
+    // Otomatik mola başlat — sonraki egzersize geçince
+    autoRest();
   }
 }
 
 function prevEx() {
   if(state.currentExIdx > 0) {
+    if(state.restInterval) clearInterval(state.restInterval);
+    endRest();
     state.currentExIdx--;
     renderActiveWorkout();
   }
 }
 
-function startRest() {
-  const btn = document.getElementById('rest-btn');
+function autoRest() {
+  // Mola overlay'i göster, butonları gizle
+  document.getElementById('rest-overlay').style.display = 'block';
+  document.getElementById('rest-btn').style.visibility = 'hidden';
+  document.querySelectorAll('.timer-btns .btn-sec').forEach(b => b.style.visibility = 'hidden');
   let secs = 60;
-  btn.disabled = true;
-  btn.style.background = 'var(--bg3)';
-  btn.style.color = 'var(--accent)';
+  document.getElementById('rest-countdown').textContent = secs;
   document.getElementById('timer-label').textContent = 'Mola — nefes al!';
   if(state.restInterval) clearInterval(state.restInterval);
   state.restInterval = setInterval(() => {
     secs--;
-    btn.textContent = '⏸ Mola (' + secs + 's)';
+    const el = document.getElementById('rest-countdown');
+    if(el) el.textContent = secs;
     if(secs <= 0) {
       clearInterval(state.restInterval);
-      btn.textContent = '⏸ Mola (60s)';
-      btn.disabled = false;
-      btn.style.background = '';
-      btn.style.color = '';
-      document.getElementById('timer-label').textContent = 'Antrenman süresi';
+      endRest();
     }
   }, 1000);
+}
+
+function skipRest() {
+  // Erken bitir
+  if(state.restInterval) clearInterval(state.restInterval);
+  endRest();
+}
+
+function endRest() {
+  document.getElementById('rest-overlay').style.display = 'none';
+  document.getElementById('rest-btn').style.visibility = 'visible';
+  document.querySelectorAll('.timer-btns .btn-sec').forEach(b => b.style.visibility = 'visible');
+  document.getElementById('rest-btn').textContent = '⏸ Mola (60s)';
+  document.getElementById('rest-btn').disabled = false;
+  document.getElementById('rest-btn').style.background = '';
+  document.getElementById('rest-btn').style.color = '';
+  document.getElementById('timer-label').textContent = 'Antrenman süresi';
+}
+
+function startRest() {
+  // Manuel mola — istediği zaman basabilir
+  autoRest();
 }
 
 function finishWorkoutComplete() {
